@@ -23,9 +23,9 @@ from yarl import URL
 import aiohttp
 
 from maugclib import googlechat_pb2 as googlechat
-from mautrix.util import magic
 
 from .. import portal as po, user as u
+from ..util.mimetype import choose_mime_type
 
 try:
     from mautrix.crypto.attachments import async_inplace_encrypt_attachment
@@ -61,7 +61,8 @@ async def _reupload_preview(
         else:
             async with aiohttp.ClientSession() as sess, sess.get(url) as resp:
                 data = bytearray(await resp.read())
-                mime = resp.headers.get("Content-Type") or magic.mimetype(data)
+                mime = choose_mime_type(data, detected=resp.headers.get("Content-Type"))
+        mime = choose_mime_type(data, detected=mime)
     except aiohttp.ClientError:
         return {}
     output = {

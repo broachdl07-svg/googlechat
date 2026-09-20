@@ -57,6 +57,7 @@ import maugclib.parsers
 from . import formatter as fmt, matrix as m, puppet as p, user as u
 from .config import Config
 from .db import Message as DBMessage, Portal as DBPortal, Reaction as DBReaction
+from .util.mimetype import choose_mime_type, message_type_from_mime
 
 if TYPE_CHECKING:
     from .__main__ import GoogleChatBridge
@@ -1095,7 +1096,7 @@ class Portal(DBPortal, BasePortal):
             data = await self.main_intent.download_media(message.url)
         else:
             raise Exception("Failed to download media from matrix")
-        mime = message.info.mimetype or magic.mimetype(data)
+        mime = choose_mime_type(data, detected=message.info.mimetype, filename=message.body)
         upload = await sender.client.upload_file(
             data=data, group_id=self.gcid_plain, filename=message.body, mime_type=mime
         )
@@ -1544,13 +1545,12 @@ class Portal(DBPortal, BasePortal):
         except aiohttp.ClientResponseError as e:
             self.log.warning(f"Failed to download attachment: {e}")
             return None
-        if mime.startswith("text/html"):
+        mime = choose_mime_type(data, detected=mime, hint=att.mime, filename=filename)
+        if mime == "text/html":
             self.log.debug(f"Ignoring HTML URL attachment {att.url}")
             return None
 
-        msgtype = getattr(MessageType, mime.split("/")[0].upper(), MessageType.FILE)
-        if msgtype == MessageType.TEXT:
-            msgtype = MessageType.FILE
+        msgtype = message_type_from_mime(mime)
         if not filename or filename == "get_attachment_url":
             if att.name:
                 filename = att.name
