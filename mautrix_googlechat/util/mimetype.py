@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import mimetypes
+
 from mautrix.types import MessageType
 from mautrix.util import magic
-import mimetypes
 
 _GENERIC_MIME_TYPES = {"application/octet-stream", "binary/octet-stream"}
 
